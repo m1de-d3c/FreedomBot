@@ -89,8 +89,10 @@ bot.on('callback_query', (ctx) => {
 
 bot.on('text', (ctx) => {
     if(users[ctx.message.from.id] != undefined){
-        if(ctx.message.text.indexOf(users[ctx.message.from.id].lastMsg) != -1) return;
-        if(users[ctx.message.from.id].lastMsg.indexOf(ctx.message.text) != -1) return;
+        if(users[ctx.message.from.id].lastMsg != undefined) {
+            if(ctx.message.text.indexOf(users[ctx.message.from.id].lastMsg) != -1) return;
+            if(users[ctx.message.from.id].lastMsg.indexOf(ctx.message.text) != -1) return;
+        }
     }
     else {
         users[ctx.update.message.from.id] = {};
@@ -106,7 +108,7 @@ bot.on('text', (ctx) => {
     let pay = parseFloat(((ctx.message.text.length / conf.symbolsPerCoin) * spaceToSymbols).toFixed(5));
     control.addMoney(pay, ctx);
 
-    usersMsgTest[ctx.message.from.id].lastMsg = ctx.message.text;
+    users[ctx.message.from.id].lastMsg = ctx.message.text;
 });
 
 bot.on("sticker", (ctx) => {
@@ -137,20 +139,20 @@ function getLastUse(command, time, ctx) {
                 if(users[ctx.update.message.from.id][`last${command}Use`].atem != 3) {
                     users[ctx.update.message.from.id][`last${command}Use`].atem++;
                     if(time % 60 == 0) {
-                        ctx.reply(`@${ctx.update.message.from.id} Эту поманду можно использовать только раз в ${time / 60} мин.`);
+                        ctx.reply(`@${ctx.update.message.from.username} Эту поманду можно использовать только раз в ${time / 60} мин.`);
                     }
                     else if(time % 60 == 30 && time != 30){
-                        ctx.reply(`@${ctx.update.message.from.id} Эту поманду можно использовать только раз в ${parseInt(time / 60)} мин 30 сек.`);
+                        ctx.reply(`@${ctx.update.message.from.username} Эту поманду можно использовать только раз в ${parseInt(time / 60)} мин 30 сек.`);
                     }
                     else if(time % 60 == time) {
-                        ctx.reply(`@${ctx.update.message.from.id} Эту поманду можно использовать только раз в ${time} сек.`);
+                        ctx.reply(`@${ctx.update.message.from.username} Эту поманду можно использовать только раз в ${time} сек.`);
                     }
                     else {
-                        ctx.reply(`@${ctx.update.message.from.id} Эту поманду можно использовать только раз в ${parseInt(time / 60)} мин ${time % 60} сек.`);
+                        ctx.reply(`@${ctx.update.message.from.username} Эту поманду можно использовать только раз в ${parseInt(time / 60)} мин ${time % 60} сек.`);
                     }
                 }
 
-                loging.log(`User ${ctx.message.from.first_name}(${ctx.message.from.id}) wrote ${command} already ${users[ctx.update.message.from.id][`last${command}Use`].atem} times.`);
+                loging.log(`User ${ctx.message.from.first_name}(${ctx.message.from.id}) wrote ${command.toLowerCase()} command already ${users[ctx.update.message.from.id][`last${command}Use`].atem} times.`);
                 return false; 
             }
         }
@@ -160,6 +162,7 @@ function getLastUse(command, time, ctx) {
     }
 
     date = new Date();
+    users[ctx.update.message.from.id][`last${command}Use`] = {};
     users[ctx.update.message.from.id][`last${command}Use`].time = date;
     users[ctx.update.message.from.id][`last${command}Use`].atem = 0;
     return true;
