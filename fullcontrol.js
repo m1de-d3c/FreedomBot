@@ -210,6 +210,8 @@ exports.addMoney = function(pay, ctx) {
     });
 }
 
+exports.getUserExist = (user_id, callback) => {UserExist(user_id, callback)}
+
 function UserExist(user_id, callback) {
     exports.datebase.serialize(() => {
         exports.datebase.each(`SELECT COUNT(*) FROM users WHERE id="${user_id}";`, function(err, row) {
