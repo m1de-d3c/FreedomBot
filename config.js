@@ -1,6 +1,6 @@
 exports.version = "0.1a";
 
-exports.API_KEY = "5033948280:AAFlm5BA3h_fdYYxfJeC4kXI5wG_xOlwhUY";
+exports.API_KEY = "Здесь токен бота";
 
 exports.defaultPrice = 15;
 exports.defaultTax = 0.2;
