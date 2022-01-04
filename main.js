@@ -8,7 +8,7 @@ const control = require("./fullcontrol.js");
 loging.Start();
 control.Init();
 
-const bot = new Telegraf(conf.API_KEY); //"5036948830:AAFqesNAcenfs2c7lpPF6HFguMOjOBEc-3Y"
+const bot = new Telegraf(conf.API_KEY);
 
 bot.start((ctx) => { 
     ctx.reply(conf.startMsg);
