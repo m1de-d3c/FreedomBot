@@ -8,7 +8,7 @@ const control = require("./fullcontrol.js");
 loging.Start();
 control.Init();
 
-const bot = new Telegraf(conf.API_KEY); //"5036948830:AAFqesNAcenfs2c7lpPF6HFguMOjOBEc-3Y"
+const bot = new Telegraf(conf.API_KEY);
 
 var users = {};
 
@@ -61,11 +61,12 @@ bot.command('create', (ctx) => {
 
 bot.command('balance', (ctx) => {
     if(!getLastUse("Balance", 120, ctx)) return;
+
     control.getBalance(ctx);
 });
 
 bot.command("get", (ctx) => {
-
+    if(!getLastUse("Get", 3, ctx)) return;
 });
 
 bot.command("inventory", (ctx) => {
@@ -77,6 +78,7 @@ bot.command("inventory", (ctx) => {
 
 bot.on('callback_query', (ctx) => {
     if(!getLastUse("Inventory", 60, ctx)) return;
+    
     if(ctx.update.callback_query.data.startsWith("INV")) {
         if(ctx.update.callback_query.data.indexOf(ctx.from.id) != -1) {
             control.getInventory(parseInt(ctx.update.callback_query.data.split(":")[1]), ctx);
