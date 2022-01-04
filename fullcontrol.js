@@ -11,13 +11,14 @@ exports.Init = function() {
             throw err.message;
         }
 
-        loging.log("Connected to datebase.")
+        loging.log("Connected to datebase.");
     });
 
     exports.datebase.serialize(() => {
         exports.datebase.run("CREATE TABLE IF NOT EXISTS users (name TEXT NOT NULL, id TEXT NOT NULL, money REAL NOT NULL, inventory TEXT);");
         exports.datebase.run("CREATE TABLE IF NOT EXISTS tokens (name TEXT NOT NULL, price REAL NOT NULL, count INTEGER NOT NULL, creater_id TEXT NOT NULL);");
         exports.datebase.run("CREATE TABLE IF NOT EXISTS transfers (event TEXT NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, transfer_value TEXT NOT NULL);");
+        exports.datebase.run("CREATE TABLE IF NOT EXISTS bot_info (name TEXT NOT NULL, value TEXT);")
     });
 }
 
@@ -198,10 +199,12 @@ exports.addMoney = function(pay, ctx) {
     exports.datebase.serialize(() =>{
         UserExist(getId(ctx), function(err, exist) {
             if(exist) {
-                exports.datebase.run(`UPDATE users SET money=money+${pay} WHERE id=${getId(ctx)}`);
-                if(pay > 0) {
-                    loging.log(`User ${getName(ctx)}(${getId(ctx)}) get +${pay} coins.`);
-                }
+                exports.datebase.each(`SELECT * FROM users WHERE id="${getId(ctx)}";`, function(err, row) {
+                    exports.datebase.run(`UPDATE users SET money=${parseFloat((pay + row.money).toFixed(5))} WHERE id=${getId(ctx)}`);
+                    if(pay > 0) {
+                        loging.log(`User ${getName(ctx)}(${getId(ctx)}) get +${pay} coins.`);
+                    }
+                });
             }
         });
     });
