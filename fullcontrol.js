@@ -23,17 +23,17 @@ exports.Init = function() {
 
 exports.changeUserName = function(ctx) {
     exports.datebase.serialize(() => {
-        UserExist((ctx.update.callback_query || ctx.message || ctx.update).from.id, (err, exist) => {
+        UserExist(getId(ctx), (err, exist) => {
             if(err) throw err.message;
 
             if(exist) {
-                exports.datebase.run(`UPDATE users SET name="${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}" WHERE id="${(ctx.update.callback_query || ctx.message || ctx.update).from.id}"`);
-                ctx.reply(`Ваше имя успешно изменено на "${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}".`);
-                loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) change her username.`);
+                exports.datebase.run(`UPDATE users SET name="${getName(ctx)}" WHERE id="${getId(ctx)}"`);
+                ctx.reply(`Ваше имя успешно изменено на "${getName(ctx)}".`);
+                loging.log(`User ${getName(ctx)}(${getId(ctx)}) change her username.`);
             }
             else {
                 ctx.reply("Пожалуйста зареестрируйтесь. /help -- для помощи.");
-                loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) try change her username. But he already not registered.`);
+                loging.log(`User ${getName(ctx)}(${getId(ctx)}) try change her username. But he already not registered.`);
             }
         });
     });
@@ -41,20 +41,20 @@ exports.changeUserName = function(ctx) {
 
 exports.getProfile = function(ctx) {
     exports.datebase.serialize(() => {
-        UserExist((ctx.update.callback_query || ctx.message || ctx.update).from.id, (err, exist) => {
+        UserExist(getId(ctx), (err, exist) => {
             if (err) throw err;
 
             if(exist) {
-                exports.datebase.each(`SELECT * FROM users WHERE id="${(ctx.update.callback_query || ctx.message || ctx.update).from.id}"`, function(err, row) {
+                exports.datebase.each(`SELECT * FROM users WHERE id="${getId(ctx)}"`, function(err, row) {
                     if (err) throw err.message;
 
-                    ctx.reply(`==== Профиль ====\nИмя: ${row.name}\nID: ${row.id}\nБаланс: ${row.money}🪙`, {  reply_markup: { resize_keyboard: true, inline_keyboard: [ [ { text: 'INVENTORY', callback_data: `INV${(ctx.update.callback_query || ctx.message || ctx.update).from.id}:0` } ] ] }});
-                    loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) get her profile.`);
+                    ctx.reply(`==== Профиль ====\nИмя: @${row.name}\nID: ${row.id}\nБаланс: ${row.money}🪙`, {  reply_markup: { resize_keyboard: true, inline_keyboard: [ [ { text: 'INVENTORY', callback_data: `INV${getId(ctx)}:0` } ] ] }});
+                    loging.log(`User ${getName(ctx)}(${getId(ctx)}) get her profile.`);
                 });
             }
             else {
                 ctx.reply("Пожалуйста зареестрируйтесь. /help -- для помощи.");
-                loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) try get her profile. But he already not registered.`);
+                loging.log(`User ${getName(ctx)}(${getId(ctx)}) try get her profile. But he already not registered.`);
             }
         });
     });
@@ -62,23 +62,23 @@ exports.getProfile = function(ctx) {
 
 exports.regNewUser = function(ctx) {
     exports.datebase.serialize(() => {
-        UserExist((ctx.update.callback_query || ctx.message || ctx.update).from.id , (err, exist) => {
+        UserExist(getId(ctx) , (err, exist) => {
             if(err) throw err.message;
 
             if(!exist) {
-                exports.datebase.run(`INSERT INTO users VALUES("${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}", "${(ctx.update.callback_query || ctx.message || ctx.update).from.id}", 0, null);`);
-                ctx.reply("Вы были успешно зареестрированы.");
-                loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) was registered.`);
+                exports.datebase.run(`INSERT INTO users VALUES("${getName(ctx)}", "${getId(ctx)}", 0, null);`);
+                ctx.reply(`@${getName(ctx)} Вы были успешно зареестрированы.`);
+                loging.log(`User ${getName(ctx)}(${getId(ctx)}) was registered.`);
             }
             else {
-                ctx.reply("Вы уже зареестрированы.");
-                loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) try register. But he already registered.`);
+                ctx.reply(`@${getName(ctx)} Вы уже зареестрированы.`);
+                loging.log(`User ${getName(ctx)}(${getId(ctx)}) try register. But he already registered.`);
             }
         });
     });
 }
 
-exports.changePrice = function(token_name, new_price) {
+exports.changePrice = function(token_name, new_price, ctx) {
     
 }
 
@@ -88,54 +88,54 @@ exports.getToken = function(token_name, ctx) {
     });
 }
 
-exports.getInventory = function(ctx, page) {
+exports.getInventory = function(page, ctx) {
     exports.datebase.serialize(() => {
-        UserExist((ctx.update.callback_query || ctx.message || ctx.update).from.id, (err, exist) => {
+        UserExist(getId(ctx), (err, exist) => {
             if(err) throw err;
 
             if(exist) {
-                exports.datebase.each(`SELECT * FROM users WHERE id="${(ctx.update.callback_query || ctx.message || ctx.update).from.id}"`, function(err, row) {
+                exports.datebase.each(`SELECT * FROM users WHERE id="${getId(ctx)}"`, function(err, row) {
                     if(err) throw err;
 
                     if(row.inventory != null) { 
                         let inventory = row.inventory.split("|").slice(1);
                         
-                        let forSend = `= Инвентарь ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name} =\nИмя\t:\tКоличество\n------\n`;
+                        let forSend = `= Инвентарь @${getName(ctx)} =\nИмя\t:\tКоличество\n------\n`;
                         let elementNum = 0;
 
-                        for(let i = 0; i < conf.maxInventoryPage; i++) {
-                            if(inventory.length -1 >= elementNum + conf.maxInventoryPage * page) {
-                                let token = {Name: inventory[elementNum + conf.maxInventoryPage * page].split(":")[0], Count: inventory[elementNum + conf.maxInventoryPage * page].split(":")[1]}
+                        for(let i = 0; i < conf.maxTokensOnInventoryPage; i++) {
+                            if(inventory.length -1 >= elementNum + conf.maxTokensOnInventoryPage * page) {
+                                let token = { Name: inventory[elementNum + conf.maxTokensOnInventoryPage * page].split(":")[0], Count: inventory[elementNum + conf.maxTokensOnInventoryPage * page].split(":")[1] }
                                 forSend += `${token.Name}\t:\t${token.Count}\n`;
                             }
                             else {
                                 if(elementNum == 0) {
                                     ctx.reply("Неправильная страница.");
-                                    loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) try get her inventory. But he write wrong page.`)
+                                    loging.log(`User ${getName(ctx)}(${getId(ctx)}) try get her inventory. But he write wrong page.`)
                                     return;
                                 }
                             }
                             elementNum++;
                         }
 
-                        forSend += `------\n [ ${page + 1}/${Math.ceil(inventory.length / conf.maxInventoryPage)} ]`
+                        forSend += `------\n [ ${page + 1}/${Math.ceil(inventory.length / conf.maxTokensOnInventoryPage)} ]`
 
-                        if (page * conf.maxInventoryPage + conf.maxInventoryPage >= inventory.length)
+                        if (page * conf.maxTokensOnInventoryPage + conf.maxTokensOnInventoryPage >= inventory.length)
                             ctx.reply(forSend);
                         else {
-                            ctx.reply(forSend, {reply_markup: { resize_keyboard: true, inline_keyboard: [ [ { text: 'NEXT PAGE', callback_data: `INV${(ctx.update.callback_query || ctx.message || ctx.update).from.id}:${page + 1}` } ] ] }});
+                            ctx.reply(forSend, {reply_markup: { resize_keyboard: true, inline_keyboard: [ [ { text: 'NEXT PAGE', callback_data: `INV${getId(ctx)}:${page + 1}` } ] ] }});
                         }
-                        loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) get her inventory on page ${page + 1}.`);
+                        loging.log(`User ${getName(ctx)}(${getId(ctx)}) get her inventory on page ${page + 1}.`);
                     }
                     else {
-                        ctx.reply("Здесь ничего нет...");
-                        loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) try get her inventory. But he don't have anything in inventory.`);
+                        ctx.reply(`@${getName(ctx)} Здесь ничего нет...`);
+                        loging.log(`User ${getName(ctx)}(${getId(ctx)}) try get her inventory. But he don't have anything in inventory.`);
                     }
                 });
             }
             else {
                 ctx.reply("Пожалуйста зареестрируйтесь. /help -- для помощи.");
-                loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) try get her inventory. But he already not registered.`);
+                loging.log(`User ${getName(ctx)}(${getId(ctx)}) try get her inventory. But he already not registered.`);
             }
         });
     });
@@ -145,50 +145,50 @@ exports.createToken = function(name, count, pricePerOne, ctx) {
     let isBreak = false;
     let price = count * (pricePerOne * (1 + conf.defaultTax)); // Price of token creation (count * price of one with tax )
 
-    UserExist((ctx.update.callback_query || ctx.message || ctx.update).from.id, (err, exist) => {
+    UserExist(getId(ctx), (err, exist) => {
         if(err) throw err;
 
         if(!exist) {
-            ctx.reply("Пожалуйста зареестрируйтесь. /help -- для помощи.");
-            loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) try create token. But he already not registered.`);
+            ctx.reply(`@${getName(ctx)} Пожалуйста зареестрируйтесь. /help -- для помощи.`);
+            loging.log(`User ${getName(ctx)}(${getId(ctx)}) try create token. But he already not registered.`);
             return;
         }
     });
 }
 
 exports.insertToInventory = function(name, count, ctx) {
-    UserExist((ctx.update.callback_query || ctx.message || ctx.update).from.id || ctx.update.message.from.id, (err, exist) => {
+    UserExist(getId(ctx), (err, exist) => {
         if (err) throw err;
 
         if(exist) {
-            exports.datebase.each(`SELECT * FROM users WHERE id="${(ctx.update.callback_query || ctx.message || ctx.update).from.id}"`, (err, row) => {
-                exports.datebase.run(`UPDATE users SET inventory="${row.inventory}" || "|${name}:${count}" WHERE id="${(ctx.update.callback_query || ctx.message || ctx.update).from.id || ctx.update.message.from.id}";`);
-                loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) get token "${name}" to her inventory.`);
+            exports.datebase.each(`SELECT * FROM users WHERE id="${getId(ctx)}"`, (err, row) => {
+                exports.datebase.run(`UPDATE users SET inventory="${row.inventory}" || "|${name}:${count}" WHERE id="${getId(ctx)}";`);
+                loging.log(`User ${getName(ctx)}(${getId(ctx)}) get token "${name}" to her inventory.`);
             });
         }
         else {
-            ctx.reply(`${(ctx.update.callback_query || ctx.message || ctx.update).from.id || ctx.update.message.from.id}, пожалуйста зареестрируйтесь. /help -- для помощи.`);
-            loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) try get token to her inventory. But he already not registered.`);
+            ctx.reply(`${getId(ctx)}, пожалуйста зареестрируйтесь. /help -- для помощи.`);
+            loging.log(`User ${getName(ctx)}(${getId(ctx)}) try get token to her inventory. But he already not registered.`);
         }
     });
 }
 
 exports.getBalance = function(ctx) {
     exports.datebase.serialize(() => {
-        UserExist((ctx.update.callback_query || ctx.message || ctx.update).from.id, (err, exist) => {
+        UserExist(getId(ctx), (err, exist) => {
             if (err) throw err;
 
             if(exist) {
-                exports.datebase.each(`SELECT money FROM users WHERE id="${(ctx.update.callback_query || ctx.message || ctx.update).from.id}"`, function(err, row) {
+                exports.datebase.each(`SELECT money FROM users WHERE id="${getId(ctx)}"`, function(err, row) {
                     if (err) throw err.message;
 
-                    ctx.reply(`Ваш баланс: ${row.money}🪙`);
-                    loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) get her balance.`);
+                    ctx.reply(`@${getName(ctx)} Ваш баланс: ${row.money}🪙`);
+                    loging.log(`User ${getName(ctx)}(${getId(ctx)}) get her balance.`);
                 });
             }
             else {
-                ctx.reply("Пожалуйста зареестрируйтесь. /help -- для помощи.");
-                loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) try get her balance. But he already not registered.`);
+                ctx.reply(`@${getName(ctx)} Пожалуйста зареестрируйтесь. /help -- для помощи.`);
+                loging.log(`User ${getName(ctx)}(${getId(ctx)}) try get her balance. But he already not registered.`);
             }
         });
     });
@@ -196,11 +196,11 @@ exports.getBalance = function(ctx) {
 
 exports.addMoney = function(pay, ctx) {
     exports.datebase.serialize(() =>{
-        UserExist((ctx.update.callback_query || ctx.message || ctx.update).from.id, function(err, exist) {
+        UserExist(getId(ctx), function(err, exist) {
             if(exist) {
-                exports.datebase.run(`UPDATE users SET money=money+${pay} WHERE id=${(ctx.update.callback_query || ctx.message || ctx.update).from.id}`);
+                exports.datebase.run(`UPDATE users SET money=money+${pay} WHERE id=${getId(ctx)}`);
                 if(pay > 0) {
-                    loging.log(`User ${(ctx.update.callback_query || ctx.message || ctx.update).from.first_name}(${(ctx.update.callback_query || ctx.message || ctx.update).from.id}) get +${pay} coins.`);
+                    loging.log(`User ${getName(ctx)}(${getId(ctx)}) get +${pay} coins.`);
                 }
             }
         });
@@ -229,4 +229,14 @@ function TokenExist(token_name, callback) {
             else callback(undefined, false);
         });
     });
+}
+
+function getName(ctx) {
+    let from = (ctx.update.message ?? ctx.message ?? ctx.update.callback_query).from;
+    return from.username || from.first_name;
+}
+
+function getId(ctx) {
+    let from = (ctx.update.message ?? ctx.message ?? ctx.update.callback_query).from;
+    return from.id;
 }

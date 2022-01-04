@@ -15,4 +15,6 @@ exports.startMsg = "Привет путник. /help -- для помощи."
 exports.unavalibleSymbols = ['\\', '/', ':', '*', "?", '"', '<', '>', '|'];
 exports.maxNameLength = 10;
 
-exports.maxInventoryPage = 5;
+exports.maxTokensOnInventoryPage = 5;
+
+exports.maxSpaceToSymbols = 0.85;

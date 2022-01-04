@@ -53,13 +53,13 @@ bot.command("get", (ctx) => {
 
 bot.command("inventory", (ctx) => {
     var page = ctx.message.text.split(" ")[1];
-    control.getInventory(ctx, parseInt(page ?? "1") - 1);
+    control.getInventory(parseInt(page ?? "1") - 1, ctx);
 });
 
 bot.on('callback_query', (ctx) => {
     if(ctx.update.callback_query.data.startsWith("INV")) {
         if(ctx.update.callback_query.data.indexOf(ctx.from.id) != -1) {
-            control.getInventory(ctx, parseInt(ctx.update.callback_query.data.split(":")[1]));
+            control.getInventory(parseInt(ctx.update.callback_query.data.split(":")[1]), ctx);
         }
         else {
             ctx.reply(`${ctx.from.first_name} ето не твое.`);
@@ -68,7 +68,12 @@ bot.on('callback_query', (ctx) => {
 });
 
 bot.on('text', (ctx) => {
-    let pay = parseInt((ctx.message.text.length / conf.symbolsPerCoin).toString());
+    let spMessage = ctx.message.text.split(" ");
+    let spaceToSymbols = spMessage.length / ctx.message.text;
+
+    if(spaceToSymbols < conf.maxSpaceToSymbols) return;
+
+    let pay = parseInt(((ctx.message.text.length / conf.symbolsPerCoin) * spaceToSymbols).toString());
     control.addMoney(pay, ctx);
 });
 
