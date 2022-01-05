@@ -1,4 +1,6 @@
 const sqlite3 = require("sqlite3");
+const axios = require("axios");
+const fs = require("fs");
 
 const loging = require("./loging.js");
 const conf = require("./config.js");
@@ -29,11 +31,11 @@ exports.changeUserName = function(ctx) {
 
             if(exist) {
                 exports.datebase.run(`UPDATE users SET name="${getName(ctx)}" WHERE id="${getId(ctx)}"`);
-                ctx.reply(`Ваше имя успешно изменено на "${getName(ctx)}".`);
+                ctx.reply(`@${getName(ctx)} Ваше имя успешно изменено на "${getName(ctx)}".`);
                 loging.log(`User ${getName(ctx)}(${getId(ctx)}) change her username.`);
             }
             else {
-                ctx.reply("Пожалуйста зареестрируйтесь. /help -- для помощи.");
+                ctx.reply(`@${getName(ctx)} Пожалуйста зареестрируйтесь. /help -- для помощи.`);
                 loging.log(`User ${getName(ctx)}(${getId(ctx)}) try change her username. But he already not registered.`);
             }
         });
@@ -54,7 +56,7 @@ exports.getProfile = function(ctx) {
                 });
             }
             else {
-                ctx.reply("Пожалуйста зареестрируйтесь. /help -- для помощи.");
+                ctx.reply(`@${getName(ctx)} Пожалуйста зареестрируйтесь. /help -- для помощи.`);
                 loging.log(`User ${getName(ctx)}(${getId(ctx)}) try get her profile. But he already not registered.`);
             }
         });
@@ -111,7 +113,7 @@ exports.getInventory = function(page, ctx) {
                             }
                             else {
                                 if(elementNum == 0) {
-                                    ctx.reply("Неправильная страница.");
+                                    ctx.reply(`@${getName(ctx)} Неправильная страница.`);
                                     loging.log(`User ${getName(ctx)}(${getId(ctx)}) try get her inventory. But he write wrong page.`)
                                     return;
                                 }
@@ -135,7 +137,7 @@ exports.getInventory = function(page, ctx) {
                 });
             }
             else {
-                ctx.reply("Пожалуйста зареестрируйтесь. /help -- для помощи.");
+                ctx.reply(`@${getName(ctx)} Пожалуйста зареестрируйтесь. /help -- для помощи.`);
                 loging.log(`User ${getName(ctx)}(${getId(ctx)}) try get her inventory. But he already not registered.`);
             }
         });
@@ -149,7 +151,48 @@ exports.createToken = function(name, count, pricePerOne, ctx) {
     UserExist(getId(ctx), (err, exist) => {
         if(err) throw err;
 
-        if(!exist) {
+        if(exist) {
+            exports.datebase.each(`SELECT * FROM users WHERE id="${getId(ctx)}";`, (err, row) => {
+                if(err) throw err;
+
+                if(row.money < price) 
+                {
+                    ctx.reply(`@${getName(ctx)} Не достаточно средств.\nУ вас ${row.money}, цена создания токена ${price}.`);
+                    loging.log(`User ${getName(ctx)}(${getId(ctx)}) try create token. But he don't have money.`);
+                    return;
+                }
+                else {
+                    exports.datebase.run(`UPDATE users SET money=${row.money - price} WHERE id="${getId(ctx)}";`);
+
+                    exports.insertToInventory(name, count, ctx);
+                    TokenExist(name, (errt, existt) => {
+                        if(errt) throw errt;
+
+                        if(!existt) {
+                            exports.datebase.run(`INSERT INTO tokens VALUES("${name}", ${pricePerOne}, ${count}, "${getId(ctx)}");`);
+                        }
+                        else {
+                            exports.datebase.run(`UPDATE tokens SET count=count+${count} WHERE name="${name}";`)
+                        }
+                    });
+        
+                    let fileId = ctx.update.message.reply_to_message.photo[0].file_id;
+                    ctx.telegram.getFileLink(fileId).then(url => {    
+                        axios(url.href, {responseType: 'stream'}).then(response => {
+                            return new Promise((resolve, reject) => {
+                                response.data.pipe(fs.createWriteStream(`./img/${name.toString()}.webp`))
+                                            .on('finish', () => { loging.log(`File ./img/${name.toString()}.webp was saved.`); })
+                                            .on('error', e => { throw e; });
+                                    });
+                                });
+                    });
+
+                    ctx.reply(`@${getName(ctx)} Токен "${name}" был создан в количестве ${count} ${(count == 1) ? "штуки" : "штук"}.`);
+                    loging.log(`Token ${name}(count : ${count}) was created.`);
+                }
+            });
+        }
+        else {
             ctx.reply(`@${getName(ctx)} Пожалуйста зареестрируйтесь. /help -- для помощи.`);
             loging.log(`User ${getName(ctx)}(${getId(ctx)}) try create token. But he already not registered.`);
             return;
@@ -163,7 +206,20 @@ exports.insertToInventory = function(name, count, ctx) {
 
         if(exist) {
             exports.datebase.each(`SELECT * FROM users WHERE id="${getId(ctx)}"`, (err, row) => {
-                exports.datebase.run(`UPDATE users SET inventory="${row.inventory}" || "|${name}:${count}" WHERE id="${getId(ctx)}";`);
+                if((row.inventory ?? "").indexOf(`|${name}`) == -1){
+                    exports.datebase.run(`UPDATE users SET inventory="${row.inventory ?? ""}|${name}:${count.toString()}" WHERE id="${getId(ctx)}";`);
+                }
+                else {
+                    let inventory = row.inventory.split("|").slice(1);
+
+                    for(var i = 0; i < inventory.length; i++) {
+                        let elem = inventory[i].split(":");
+                        if(elem[0] == name) inventory[i] = `${name}:${parseInt(elem[1]) + parseInt(count)}`;
+                    }
+
+                    exports.datebase.run(`UPDATE users SET inventory="|${inventory.join("|")}" WHERE id="${getId(ctx)}";`);
+                }
+
                 loging.log(`User ${getName(ctx)}(${getId(ctx)}) get token "${name}" to her inventory.`);
             });
         }
@@ -240,6 +296,8 @@ function getName(ctx) {
     let from = (ctx.update.message ?? ctx.message ?? ctx.update.callback_query).from;
     return from.username || from.first_name;
 }
+
+exports.getId = getId;
 
 function getId(ctx) {
     let from = (ctx.update.message ?? ctx.message ?? ctx.update.callback_query).from;

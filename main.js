@@ -45,18 +45,24 @@ bot.command('my', (ctx) => {
 });
 
 bot.command('create', (ctx) => {
-    if(!getLastUse("Create", 30, ctx)) return;
-    /*
-    var spMessage = ctx.message.text.split(" ").slice(1);
-    if (spMessage.length >= 2) {
-        control.createToken(spMessage.slice(0, spMessage.length - 1), spMessage[spMessage.length - 1], parseFloat(spMessage[2] ?? conf.defaultPrice.toString()), ctx);
-    }
-    else {
+    let wrongCommandMsg = function() {
         ctx.reply("Неправильная комманда. /help -- для поомощи.");
         loging.log(`User ${ctx.from.id} wrote wrong /create command.`);
     }
-    */
-    ctx.reply("Не работает.")
+    
+    if(!getLastUse("Create", 30, ctx)) return;
+    
+    var spMessage = ctx.message.text.split(" ").slice(1);
+    if (spMessage.length >= 2) {
+        if(ctx.update.message.reply_to_message != undefined) {
+            if(ctx.update.message.reply_to_message.photo != undefined) {
+                control.createToken(spMessage.slice(0, 1), spMessage[1], parseFloat(spMessage[2] ?? conf.defaultPrice.toString()), ctx);
+            }
+            else wrongCommandMsg();
+        }
+        else wrongCommandMsg();
+    }
+    else wrongCommandMsg();
 });
 
 bot.command('balance', (ctx) => {
@@ -134,12 +140,12 @@ bot.launch();
 
 function getLastUse(command, time, ctx) {
     let date = new Date();
-    if(users[ctx.update.message.from.id] != undefined) {
-        if(users[ctx.update.message.from.id][`last${command}Use`] != undefined){
-            let userDate = users[ctx.update.message.from.id][`last${command}Use`].time;
+    if(users[control.getId(ctx)] != undefined) {
+        if(users[control.getId(ctx)][`last${command}Use`] != undefined){
+            let userDate = users[control.getId(ctx)][`last${command}Use`].time;
             if((date.getMinutes() * 60) + date.getSeconds() - (userDate.getMinutes() * 60) + userDate.getSeconds() <= time && userDate.getHours() == date.getHours()) { 
-                if(users[ctx.update.message.from.id][`last${command}Use`].atem != 3) {
-                    users[ctx.update.message.from.id][`last${command}Use`].atem++;
+                if(users[control.getId(ctx)][`last${command}Use`].atem != 3) {
+                    users[control.getId(ctx)][`last${command}Use`].atem++;
                     if(time % 60 == 0) {
                         ctx.reply(`@${ctx.update.message.from.username} Эту поманду можно использовать только раз в ${time / 60} мин.`);
                     }
@@ -154,18 +160,18 @@ function getLastUse(command, time, ctx) {
                     }
                 }
 
-                loging.log(`User ${ctx.message.from.first_name}(${ctx.message.from.id}) wrote ${command.toLowerCase()} command already ${users[ctx.update.message.from.id][`last${command}Use`].atem} times.`);
+                loging.log(`User ${control.getId(ctx)}(${control.getId(ctx)}) wrote ${command.toLowerCase()} command already ${users[control.getId(ctx)][`last${command}Use`].atem} times.`);
                 return false; 
             }
         }
     }
     else {
-        users[ctx.update.message.from.id] = {};
+        users[control.getId(ctx)] = {};
     }
 
     date = new Date();
-    users[ctx.update.message.from.id][`last${command}Use`] = {};
-    users[ctx.update.message.from.id][`last${command}Use`].time = date;
-    users[ctx.update.message.from.id][`last${command}Use`].atem = 0;
+    users[control.getId(ctx)][`last${command}Use`] = {};
+    users[control.getId(ctx)][`last${command}Use`].time = date;
+    users[control.getId(ctx)][`last${command}Use`].atem = 0;
     return true;
 }
